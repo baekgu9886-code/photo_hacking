@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Hacking</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: #000;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.35;
+        }
+
+        .card {
+            background: rgba(10, 15, 25, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 255, 65, 0.15);
+            max-width: 580px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            color: #00ff41;
+            text-shadow: 0 0 12px rgba(0, 255, 65, 0.6);
+            font-weight: 800;
+        }
+
+        p {
+            font-size: 1rem;
+            color: #4ade80;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .upload-box {
+            border: 2px dashed #166534;
+            padding: 40px 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(5, 46, 22, 0.3);
+            text-align: center;
+            color: #4ade80;
+            font-size: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-box:hover {
+            border-color: #00ff41;
+            color: #00ff41;
+            background: rgba(0, 255, 65, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        #previewContainer {
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        #previewImg {
+            max-width: 100%;
+            max-height: 320px;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
+            margin-bottom: 16px;
+            border: 1px solid rgba(0, 255, 65, 0.3);
+        }
+
+        .re-upload-btn {
+            background: #1e293b;
+            color: #4ade80;
+            border: 1px solid #166534;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .re-upload-btn:hover {
+            background: #064e3b;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #15803d, #166534);
+            color: #00ff41;
+            border: 1px solid #22c55e;
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 65, 0.3);
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #1e293b;
+            color: #64748b;
+            border-color: #334155;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #resultArea {
+            background: rgba(5, 10, 20, 0.9);
+            border: 1px solid rgba(0, 255, 65, 0.3);
+            padding: 24px;
+            border-radius: 16px;
+            text-align: left;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            display: none;
+            animation: fadeIn 0.4s ease;
+            white-space: pre-line;
+            color: #e2e8f0;
+        }
+
+        .loading {
+            color: #00ff41;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 65, 0.2);
+            border-top: 3px solid #00ff41;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .penguin-container {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            z-index: 10;
+        }
+
+        .penguin-speech {
+            background: rgba(10, 20, 10, 0.95);
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            padding: 10px 16px;
+            border-radius: 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.4);
+            animation: float 2s infinite ease-in-out;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .penguin-card {
+            background: rgba(10, 15, 25, 0.95);
+            border: 2px solid #00ff41;
+            padding: 12px 18px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.25);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .penguin-card:hover {
+            transform: scale(1.08);
+            background: rgba(5, 30, 15, 0.95);
+        }
+
+        .penguin-emoji {
+            font-size: 2.4rem;
+            animation: bounce 1.5s infinite alternate;
+        }
+
+        .penguin-text {
+            font-size: 0.75rem;
+            color: #4ade80;
+            font-family: monospace;
+            line-height: 1.3;
+            text-align: left;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(-4px);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .penguin-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="card">
+        <div class="header">
+            <h1>💊 Photo Hacking</h1>
+            <p>사진을 파헤칠 준비됬슘</p>
+        </div>
+
+        <label class="upload-box" id="uploadLabel">
+            <span class="upload-icon">📂</span>
+            <span>타겟 이미지 데이터 업로드</span>
+            <span style="font-size: 0.8rem; color: #15803d;">SECURE UPLOAD PORTAL</span>
+            <input type="file" id="imageInput" accept="image/*">
+        </label>
+
+        <div id="previewContainer">
+            <img id="previewImg" alt="업로드된 이미지 미리보기">
+            <div>
+                <button class="re-upload-btn" onclick="resetImage()">🔄 다른 데이터로 교체하기</button>
+            </div>
+        </div>
+
+        <button class="btn" id="analyzeBtn" onclick="analyzeImageWithServer()" disabled>🕶️ 이번엔 또 뭘 가지고 왔나</button>
+
+        <div id="resultArea"></div>
+    </div>
+
+    <div class="penguin-container">
+        <div class="penguin-speech" id="penguinSpeech">쿠쿠쿠... (나를 눌러봐라!)</div>
+        <div class="penguin-card" onclick="triggerKululuTalk()">
+            <span class="penguin-emoji">🐧</span>
+            <div class="penguin-text">
+                <b>SYSTEM: CLICK ME!</b><br>
+                <span>HACKING PENGUIN v1.0</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const kululuQuotes = [
+            "쿠쿠쿠... 코드 파헤치는 중이다...",
+            "음? 이 픽셀 톤은 제법이잖아, 쿠쿠쿠...",
+            "사진 한 장으로 내 눈을 속이진 못한다!",
+            "키보드를 더 세게 쳐라, 쿠쿠쿠!",
+            "어이, 방화벽 따위는 이미 뚫었다고!",
+            "이 색감... 내 안경 렌즈보다 반짝이는군, 쿠쿠쿠...",
+            "데이터 분석 속도가 안 나오면 안경을 바꿔 써라!",
+            "쿠쿠쿠... 비밀번호가 '1234'는 아니겠지?",
+            "네 놈의 퍼스널 컬러는 내가 정한다, 쿠쿠쿠!",
+            "크크크... 시스템 메인프레임 접속 완료!",
+            "사진을 더 가져와라! 내 CPU가 심심하다!",
+            "쿠쿠쿠... 내 귀여움에 방심하지 마라!"
+        ];
+
+        function triggerKululuTalk() {
+            const randomIndex = Math.floor(Math.random() * kululuQuotes.length);
+            const penguinSpeech = document.getElementById('penguinSpeech');
+            penguinSpeech.innerText = kululuQuotes[randomIndex];
+        }
+
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const alphabet = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッンABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+        let rainDrops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                ctx.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                if (rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) rainDrops[i] = 0;
+                rainDrops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 30);
+
+        const imageInput = document.getElementById('imageInput');
+        const previewImg = document.getElementById('previewImg');
+        const uploadLabel = document.getElementById('uploadLabel');
+        const previewContainer = document.getElementById('previewContainer');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const resultArea = document.getElementById('resultArea');
+        const penguinSpeech = document.getElementById('penguinSpeech');
+        let base64Image = "";
+
+        imageInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                base64Image = event.target.result;
+                previewImg.src = base64Image;
+                uploadLabel.style.display = 'none';
+                previewContainer.style.display = 'block';
+                analyzeBtn.disabled = false;
+                resultArea.style.display = 'none';
+                penguinSpeech.innerText = "쿠쿠쿠... 타겟 이미지 포착 완료!";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function resetImage() {
+            imageInput.value = "";
+            base64Image = "";
+            previewImg.src = "";
+            previewContainer.style.display = 'none';
+            uploadLabel.style.display = 'flex';
+            analyzeBtn.disabled = true;
+            resultArea.style.display = 'none';
+            penguinSpeech.innerText = "쿠쿠쿠... 코드 파헤치는 중이다...";
+        }
+
+        // Vercel 서버리스 함수로 요청을 보내는 안전한 함수
+        async function analyzeImageWithServer() {
+            if (!base64Image) {
+                alert("먼저 사진을 업로드해주세요!");
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            resultArea.style.display = 'block';
+            resultArea.className = "";
+            resultArea.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>펭귄 해커가 서버를 통해 이미지 픽셀을 해독 중이다...</span>
+                </div>
+            `;
+            penguinSpeech.innerText = "쿠쿠쿠... 서버 경유 딥 해킹 가동 중!";
+
+            try {
+                const response = await fetch("/api/analyze", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: base64Image })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    resultArea.innerHTML = `❌ 시스템 에러: ${data.error}`;
+                    penguinSpeech.innerText = "크윽... 해킹 에러 발생!";
+                } else {
+                    resultArea.innerHTML = `✨ <b>[Photo Hacking 분석 완료]</b><br><br>${data.result}`;
+                    penguinSpeech.innerText = "쿠쿠쿠... 해킹 대성공이다!";
+                }
+
+            } catch (err) {
+                resultArea.innerHTML = `❌ 네트워크 에러 발생: ${err.message}`;
+                penguinSpeech.innerText = "크윽... 연결이 끊어졌다!";
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+
+</html>
