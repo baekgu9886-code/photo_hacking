@@ -416,7 +416,7 @@
             reader.readAsDataURL(file);
         });
 
-        function resetImage() {
+        function resetInfo() {
             imageInput.value = "";
             base64Image = "";
             previewImg.src = "";
@@ -426,8 +426,8 @@
             resultArea.style.display = 'none';
             penguinSpeech.innerText = "쿠쿠쿠... 코드 파헤치는 중이다...";
         }
+        function resetImage() { resetInfo(); }
 
-        // Vercel 서버리스 함수로 요청을 보내는 안전한 함수
         async function analyzeImageWithServer() {
             if (!base64Image) {
                 alert("먼저 사진을 업로드해주세요!");
@@ -458,8 +458,13 @@
                     resultArea.innerHTML = `❌ 시스템 에러: ${data.error}`;
                     penguinSpeech.innerText = "크윽... 해킹 에러 발생!";
                 } else {
-                    resultArea.innerHTML = `✨ <b>[Photo Hacking 분석 완료]</b><br><br>${data.result}`;
-                    penguinSpeech.innerText = "쿠쿠쿠... 해킹 대성공이다!";
+                    if (data.quotaExceeded) {
+                        resultArea.innerHTML = `🐧 <b>[쿠루루의 긴급 통신]</b><br><br>${data.result}`;
+                        penguinSpeech.innerText = "크윽... 토큰이 다 닳았다 주륵...";
+                    } else {
+                        resultArea.innerHTML = `✨ <b>[Photo Hacking 분석 완료]</b><br><br>${data.result}`;
+                        penguinSpeech.innerText = "쿠쿠쿠... 해킹 대성공이다!";
+                    }
                 }
 
             } catch (err) {
