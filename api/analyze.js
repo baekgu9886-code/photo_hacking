@@ -8,7 +8,6 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'No image provided' });
     }
 
-    // Vercel 환경 변수에서 안전하게 키를 꺼내 씀 (코드에 직접 안 적음!)
     const apiKey = sk - proj - Q1Q - AG2frL5CjiifU4W_oO1GS6rmA1iRtAh9tajOLlxeT0iOakpsGUSvzaLaUdWEQ3ArJiDWWCT3BlbkFJQrSe9odNykdZnwqe1e8rFuEu0XT - b9BH0ISwkH59AzJpfRj0_NycKCOYoRF - VfAiC6xV9h0kEA;
     if (!apiKey) {
         return res.status(500).json({ error: 'Server API key is not configured' });
@@ -45,7 +44,15 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (data.error) {
-            return res.status(500).json({ error: data.error.message });
+            // 토큰이 다 닳았거나 쿼터/잔액 관련 에러일 경우 특별 메시지 송출
+            const errMsg = data.error.message || "";
+            if (errMsg.includes("quota") || errMsg.includes("billing") || errMsg.includes("exceeded") || data.error.code === "insufficient_quota") {
+                return res.status(200).json({
+                    quotaExceeded: true,
+                    result: "API 키 크레딧이 다 닳아서 에러가 나는데, 새로운 키를 발급받거나 충전할 수 있을까요? (주륵)"
+                });
+            }
+            return res.status(500).json({ error: errMsg });
         }
 
         const aiContent = data.choices[0].message.content;
